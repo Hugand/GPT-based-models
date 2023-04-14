@@ -142,11 +142,11 @@ class NanoGPTClassifier(nn.Module):
         n_batches = np.round(len(X) / batch_size).astype(np.int)
         print(X.shape)
         
-        X = np.reshape(X, (n_batches, batch_size, X.shape[1]))
-        X = torch.from_numpy(X).to(device)
+        X = torch.reshape(X, (n_batches, batch_size, X.shape[1])).to(device)
+        # X = torch.from_numpy(X).to(device)
 
-        y = np.reshape(y, (n_batches, batch_size, y.shape[1]))
-        y = torch.from_numpy(y).to(device)
+        y = torch.reshape(y, (n_batches, batch_size, y.shape[1])).to(device)
+        # y = torch.from_numpy(y).to(device)
         
         print("Starting training...")
         for epoch in range(epochs):
