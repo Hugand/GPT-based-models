@@ -3,6 +3,7 @@ from torch import nn
 import numpy as np
 import math
 from torch.nn import functional as F
+from sklearn.metrics import accuracy_score(
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -148,6 +149,7 @@ class NanoGPTClassifier(nn.Module):
         loss = 0
         batch_progress = 0
         n_batches = np.round(len(X) / batch_size).astype(np.int)
+        X_size = len(X)
         print(X.shape)
         
         X = torch.reshape(X, (n_batches, batch_size, X.shape[1])).to(device)
@@ -176,7 +178,7 @@ class NanoGPTClassifier(nn.Module):
                 # compute training reconstruction loss
                 train_loss = loss_criterion(outputs, y[i]).to(device)
 
-                train_acc += torch.sum(outputs == y[i])
+                train_acc += accuracy_score(y[i], outputs) #torch.sum(outputs == y[i])
 
                 # compute accumulated gradients for generator and discriminator
                 train_loss.backward()
@@ -192,7 +194,7 @@ class NanoGPTClassifier(nn.Module):
                 print('#', end="")
 
             losses.append(loss)
-            train_acc = train_acc/(X.shape[0] * X.shape[1])
+            train_acc = train_acc/n_batches
 
             print(f', loss: {loss}, acc: {train_acc}')
             
