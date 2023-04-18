@@ -74,7 +74,6 @@ class CausalSelfAttention(nn.Module):
         y = self.resid_dropout(self.c_proj(y))
         return y
 
-    
 class TransformerBlock(nn.Module):
     def __init__(self, n_heads, embedding_dim, bias):
         super().__init__()
@@ -83,14 +82,13 @@ class TransformerBlock(nn.Module):
         self.head_dim = embedding_dim // n_heads
         self.attention_projection = nn.Linear(embedding_dim, 3 * embedding_dim, bias=bias)
         # self.multihead_attention = CausalSelfAttention(embedding_dim, n_heads)
-        self.multihead_attention = CausalSelfAttention(embedding_dim, n_heads, 0.3, False, 1024)
+        self.multihead_attention = CausalSelfAttention(embedding_dim, n_heads, 0.1, False, 1024)
         #  n_embd, n_head, dropout, bias, block_size
         self.layernorm_1 = nn.LayerNorm(embedding_dim).to(device)
-        self.fc_layers = FullyConnectedLayers(embedding_dim, 0.3).to(device)
+        self.fc_layers = FullyConnectedLayers(embedding_dim, 0.1).to(device)
         self.layernorm_2 = nn.LayerNorm(embedding_dim).to(device)
 
     def forward(self, x):
-
         residual = x
         x = self.multihead_attention(x)
         x = self.layernorm_1(x + residual)
@@ -100,7 +98,7 @@ class TransformerBlock(nn.Module):
         return x
     
 class ClassificationHead(nn.Module):
-    def __init__(self, n_embeddings, embedding_dim, output_size, dropout=0.3):
+    def __init__(self, n_embeddings, embedding_dim, output_size, dropout=0.1):
         super().__init__()
         self.fc_layer1 = nn.Sequential(
             nn.Linear(in_features=n_embeddings * embedding_dim, out_features=embedding_dim),
@@ -158,7 +156,9 @@ class NanoGPTClassifier(nn.Module):
         for transformer_block in self.transformer_blocks:
             X = transformer_block(X)
 
+        print(X.shape, self.n_embeddings, self.embedding_dim, self.n_embeddings * self.embedding_dim)
         flattened = X.view(X.size(0), -1)
+        print(flattened.shape, self.n_embeddings * self.embedding_dim)
         # Classifier layers
         X = self.output_head(flattened)
         

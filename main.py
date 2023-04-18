@@ -35,12 +35,12 @@ def apply_preprocessing(X, y):
     X.head()
 
     # Tokenize the captions
-    myTokenizer = Tokenizer(num_words=280)
+    myTokenizer = Tokenizer(num_words=512)
     myTokenizer.fit_on_texts(X)
     X_tokens = myTokenizer.texts_to_sequences(X)
 
     # Pad sequences
-    X_padded = sequence.pad_sequences(X_tokens, maxlen=300)
+    X_padded = sequence.pad_sequences(X_tokens, maxlen=512)
 
     # Label encode labels
     y_enc = np.zeros((len(y), 3))
@@ -68,8 +68,8 @@ def main():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    nano_gpt = NanoGPTClassifier(3, 10, 512, 40)
-    optimizer = torch.optim.Adam(nano_gpt.parameters(), lr=0.1) #, betas=(0.5, 0.999)
+    nano_gpt = NanoGPTClassifier(3, 5, 512, 40)
+    optimizer = torch.optim.Adam(nano_gpt.parameters(), lr=0.0003) #, betas=(0.5, 0.999)
     loss_criterion = nn.CrossEntropyLoss()
     X_train = torch.from_numpy(X_train).to(device)
     y_train = torch.from_numpy(y_train).to(device)
