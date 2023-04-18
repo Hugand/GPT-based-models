@@ -133,14 +133,11 @@ class NanoGPTClassifier(nn.Module):
     def forward(self, features):
         # Embedding
         X = self.embedding(features.to(device)).to(device)
-        print("1:", X.shape)
         # Transformer blocks
         for transformer_block in self.transformer_blocks:
             X = transformer_block(X)
 
-        print("2:", X.shape)
         flattened = X.view(X.size(0), -1)
-        print("3:", flattened.shape)
         # Classifier layers
         X = self.output_head(flattened)
         
@@ -179,7 +176,6 @@ class NanoGPTClassifier(nn.Module):
                 # compute training reconstruction loss
                 train_loss = loss_criterion(outputs, y[i]).to(device)
 
-                print(outputs.shape, y[i].shape)
                 train_acc += torch.sum(outputs == y[i])
 
                 # compute accumulated gradients for generator and discriminator
