@@ -30,12 +30,12 @@ class CausalSelfAttention(nn.Module):
         super().__init__()
         assert n_embd % n_head == 0
         # key, query, value projections for all heads, but in a batch
-        self.c_attn = nn.Linear(n_embd, 3 * n_embd, bias=bias)
+        self.c_attn = nn.Linear(n_embd, 3 * n_embd, bias=bias).to(device)
         # output projection
-        self.c_proj = nn.Linear(n_embd, n_embd, bias=bias)
+        self.c_proj = nn.Linear(n_embd, n_embd, bias=bias).to(device)
         # regularization
-        self.attn_dropout = nn.Dropout(dropout)
-        self.resid_dropout = nn.Dropout(dropout)
+        self.attn_dropout = nn.Dropout(dropout).to(device)
+        self.resid_dropout = nn.Dropout(dropout).to(device)
         self.n_head = n_head
         self.n_embd = n_embd
         self.dropout = dropout
@@ -82,11 +82,11 @@ class TransformerBlock(nn.Module):
         self.head_dim = embedding_dim // n_heads
         self.attention_projection = nn.Linear(embedding_dim, 3 * embedding_dim, bias=bias)
         # self.multihead_attention = CausalSelfAttention(embedding_dim, n_heads)
-        self.multihead_attention = CausalSelfAttention(embedding_dim, n_heads, 0.3, True, 1024)
+        self.multihead_attention = CausalSelfAttention(embedding_dim, n_heads, 0.3, False, 1024)
         #  n_embd, n_head, dropout, bias, block_size
-        self.layernorm_1 = nn.LayerNorm(embedding_dim)
-        self.fc_layers = FullyConnectedLayers(embedding_dim, 0.3)
-        self.layernorm_2 = nn.LayerNorm(embedding_dim)
+        self.layernorm_1 = nn.LayerNorm(embedding_dim).to(device)
+        self.fc_layers = FullyConnectedLayers(embedding_dim, 0.3).to(device)
+        self.layernorm_2 = nn.LayerNorm(embedding_dim).to(device)
 
     def forward(self, x):
 
@@ -99,14 +99,22 @@ class TransformerBlock(nn.Module):
         return x
     
 class ClassificationHead(nn.Module):
-    def __init__(self, embedding_dim, output_size):
+    def __init__(self, n_embeddings, embedding_dim, output_size, dropout=0.3):
         super().__init__()
-        self.fc_layer = nn.Linear(embedding_dim, output_size)
-        self.softmax = nn.Softmax(dim=1)
+        self.fc_layer1 = nn.Sequential(
+            nn.Linear(in_features=n_embeddings * embedding_dim, out_features=embedding_dim),
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
+        self.fc_layer2 = nn.Sequential(
+            nn.Linear(in_features=embedding_dim, out_features=output_size),
+            nn.Dropout(p=dropout),
+            nn.Softmax(dim=1)
+        )
 
     def forward(self, x):
-        x = self.fc_layer(x)
-        x = self.softmax(x)
+        x = self.fc_layer1(x)
+        x = self.fc_layer2(x)
         return x
 
 class NanoGPTClassifier(nn.Module):
@@ -118,20 +126,23 @@ class NanoGPTClassifier(nn.Module):
         self.output_size = output_size
 
         # Layers
-        self.embedding = nn.Embedding(n_embeddings, embedding_dim)
+        self.embedding = nn.Embedding(n_embeddings, embedding_dim).to(device)
         self.transformer_blocks = [TransformerBlock(10, embedding_dim, False) for _ in range(n_transformer_blocks)]
-        self.output_head = ClassificationHead(embedding_dim, output_size)
+        self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
     def forward(self, features):
         # Embedding
-        X = self.embedding(features)
-
+        X = self.embedding(features.to(device)).to(device)
+        print("1:", X.shape)
         # Transformer blocks
         for transformer_block in self.transformer_blocks:
             X = transformer_block(X)
 
+        print("2:", X.shape)
+        flattened = X.view(X.size(0), -1)
+        print("3:", flattened.shape)
         # Classifier layers
-        X = self.output_head(X)
+        X = self.output_head(flattened)
         
         return X
 
@@ -145,12 +156,17 @@ class NanoGPTClassifier(nn.Module):
         X = torch.reshape(X, (n_batches, batch_size, X.shape[1])).to(device)
         # X = torch.from_numpy(X).to(device)
 
-        y = torch.reshape(y, (n_batches, batch_size, y.shape[1])).to(device)
+        y = torch.reshape(y, (n_batches, batch_size, y.shape[1])) \
+            .type(torch.FloatTensor).to(device)
         # y = torch.from_numpy(y).to(device)
+
+        print(X.shape, y.shape, n_batches)
+
         
         print("Starting training...")
         for epoch in range(epochs):
             loss = 0
+            train_acc = 0
             print(f'Epoch {epoch}/{epochs} - ', end="")
             
             for i in range(n_batches):
@@ -159,9 +175,12 @@ class NanoGPTClassifier(nn.Module):
                 
                 # compute reconstructions
                 outputs = self.forward(X[i].to(device))
-                
+
                 # compute training reconstruction loss
                 train_loss = loss_criterion(outputs, y[i]).to(device)
+
+                print(outputs.shape, y[i].shape)
+                train_acc += torch.sum(outputs == y[i])
 
                 # compute accumulated gradients for generator and discriminator
                 train_loss.backward()
@@ -177,7 +196,8 @@ class NanoGPTClassifier(nn.Module):
                 print('#', end="")
 
             losses.append(loss)
+            train_acc = train_acc/(X.shape[0] * X.shape[1])
 
-            print(f', loss: {loss}')
+            print(f', loss: {loss}, acc: {train_acc}')
             
         return losses
