@@ -3,7 +3,7 @@ from torch import nn
 import numpy as np
 import math
 from torch.nn import functional as F
-from sklearn.metrics import accuracy_score(
+from sklearn.metrics import accuracy_score
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
