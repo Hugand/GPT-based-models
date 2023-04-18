@@ -74,7 +74,7 @@ def main():
     X_train = torch.from_numpy(X_train).to(device)
     y_train = torch.from_numpy(y_train).to(device)
 
-    nano_gpt.train(X_train, y_train, optimizer, loss_criterion, epochs=30, batch_size=95)
+    nano_gpt.fit(X_train, y_train, optimizer, loss_criterion, epochs=30, batch_size=95)
 
     test_batch_size = 100
     X_test = X_test[:900]
