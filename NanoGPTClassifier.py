@@ -156,9 +156,7 @@ class NanoGPTClassifier(nn.Module):
         for transformer_block in self.transformer_blocks:
             X = transformer_block(X)
 
-        print(X.shape, self.n_embeddings, self.embedding_dim, self.n_embeddings * self.embedding_dim)
         flattened = X.view(X.size(0), -1)
-        print(flattened.shape, self.n_embeddings * self.embedding_dim)
         # Classifier layers
         X = self.output_head(flattened)
         
