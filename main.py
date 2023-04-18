@@ -76,6 +76,25 @@ def main():
 
     nano_gpt.train(X_train, y_train, optimizer, loss_criterion, epochs=30, batch_size=95)
 
+    test_batch_size = 100
+    X_test = X_test[:900]
+    y_test = y_test[:900]
+    n_batches = np.round(len(X_test) / test_batch_size).astype(np.int)
+    X_batched_test = torch.from_numpy(X_test)
+    X_batched_test = torch.reshape(X_batched_test, (n_batches, test_batch_size, X_batched_test.shape[1]))
+    preds_list = []
+
+    with torch.no_grad():
+        for i in range(n_batches):
+            preds = nano_gpt(X_batched_test[i])
+            enc_preds = torch.argmax(preds, dim=1).to('cpu')
+            preds_list += enc_preds.tolist()
+
+        enc_preds = torch.from_numpy(np.asarray(preds_list)).to('cpu')
+        enc_y_test = torch.argmax(torch.from_numpy(y_test), dim=1).to('cpu')
+        test_acc = torch.sum(enc_preds == enc_y_test) / len(y_test)
+        print("Test Accuracy:", test_acc)
+
 
 if __name__ == '__main__':
     main()

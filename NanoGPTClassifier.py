@@ -162,7 +162,7 @@ class NanoGPTClassifier(nn.Module):
         
         return X
 
-    def train(self, X, y, optimizer, loss_criterion, epochs=10, batch_size=64, save_frequency=10):
+    def fit(self, X, y, optimizer, loss_criterion, epochs=10, batch_size=64, save_frequency=10):
         losses = []
         loss = 0
         batch_progress = 0
