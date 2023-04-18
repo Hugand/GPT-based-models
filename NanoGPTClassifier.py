@@ -53,9 +53,9 @@ class CausalSelfAttention(nn.Module):
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v  = self.c_attn(x).split(self.n_embd, dim=2)
-        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2).to(device) # (B, nh, T, hs)
-        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2).to(device) # (B, nh, T, hs)
-        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2).to(device) # (B, nh, T, hs)
+        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
@@ -68,7 +68,7 @@ class CausalSelfAttention(nn.Module):
             att = F.softmax(att, dim=-1)
             att = self.attn_dropout(att)
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
-        y = y.transpose(1, 2).contiguous().view(B, T, C).to(device) # re-assemble all head outputs side by side
+        y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
 
         # output projection
         y = self.resid_dropout(self.c_proj(y))
@@ -162,7 +162,7 @@ class NanoGPTClassifier(nn.Module):
         
         return X
 
-    def train(self, X, y, optimizer, loss_criterion, epochs=10, batch_size=64):
+    def train(self, X, y, optimizer, loss_criterion, epochs=10, batch_size=64, save_frequency=10):
         losses = []
         loss = 0
         batch_progress = 0
@@ -191,10 +191,10 @@ class NanoGPTClassifier(nn.Module):
                 optimizer.zero_grad()
                 
                 # compute reconstructions
-                outputs = self.forward(X[i].to(device))
+                outputs = self.forward(X[i])
 
                 # compute training reconstruction loss
-                train_loss = loss_criterion(outputs, y[i]).to(device)
+                train_loss = loss_criterion(outputs, y[i])
 
                 enc_outputs = torch.argmax(outputs, dim=1)
 
@@ -217,5 +217,8 @@ class NanoGPTClassifier(nn.Module):
             train_acc = train_acc/n_batches
 
             print(f', loss: {loss}, acc: {train_acc}')
+
+            if epoch % save_frequency == 0:
+                torch.save(self.state_dict(), 'nano-gpt-classifier.model')
             
         return losses
