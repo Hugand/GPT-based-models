@@ -131,6 +131,26 @@ class NanoGPTClassifier(nn.Module):
         self.transformer_blocks = [TransformerBlock(10, embedding_dim, False) for _ in range(n_transformer_blocks)]
         self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
+        # Initialize weights
+        self._init_weights(self.embedding)
+        for block in self.transformer_blocks:
+            self._init_weights(block)
+        self._init_weights(self.output_head)
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Embedding):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+            if module.padding_idx is not None:
+                module.weight.data[module.padding_idx].zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+        elif isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+            if module.bias is not None:
+                module.bias.data.zero_()
+
+
     def forward(self, features):
         # Embedding
         X = self.embedding(features.to(device)).to(device)
@@ -157,11 +177,11 @@ class NanoGPTClassifier(nn.Module):
 
         y = torch.reshape(y, (n_batches, batch_size, y.shape[1])) \
             .type(torch.FloatTensor).to(device)
+        y = torch.argmax(y, dim=2)
         # y = torch.from_numpy(y).to(device)
 
         print(X.shape, y.shape, n_batches)
 
-        
         print("Starting training...")
         for epoch in range(epochs):
             loss = 0
@@ -178,7 +198,9 @@ class NanoGPTClassifier(nn.Module):
                 # compute training reconstruction loss
                 train_loss = loss_criterion(outputs, y[i]).to(device)
 
-                train_acc += accuracy_score(torch.round(y[i]).cpu().detach().numpy(), outputs.cpu().detach().numpy()) #torch.sum(outputs == y[i])
+                enc_outputs = torch.argmax(outputs, dim=1)
+
+                train_acc += torch.sum(enc_outputs == y[i]) / len(y[i])
 
                 # compute accumulated gradients for generator and discriminator
                 train_loss.backward()
