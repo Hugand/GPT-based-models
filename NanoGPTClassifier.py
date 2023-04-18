@@ -178,7 +178,7 @@ class NanoGPTClassifier(nn.Module):
                 # compute training reconstruction loss
                 train_loss = loss_criterion(outputs, y[i]).to(device)
 
-                train_acc += accuracy_score(y[i].cpu().detach().numpy(), outputs.cpu().detach().numpy()) #torch.sum(outputs == y[i])
+                train_acc += accuracy_score(torch.round(y[i]).cpu().detach().numpy(), outputs.cpu().detach().numpy()) #torch.sum(outputs == y[i])
 
                 # compute accumulated gradients for generator and discriminator
                 train_loss.backward()
