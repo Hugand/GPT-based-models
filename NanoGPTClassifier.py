@@ -12,11 +12,11 @@ class FullyConnectedLayers(nn.Module):
         super().__init__()
         self.fc_input = nn.Sequential(
             nn.Linear(base_size, 4 * base_size, bias=bias),
-            nn.ReLU()
+            nn.GELU()
         )
         self.fc_output = nn.Sequential(
             nn.Linear(4 * base_size, base_size, bias=bias),
-            nn.ReLU()
+            nn.GELU()
         )
         self.dropout = nn.Dropout(dropout)
 
@@ -105,7 +105,7 @@ class ClassificationHead(nn.Module):
         self.fc_layer1 = nn.Sequential(
             nn.Linear(in_features=n_embeddings * embedding_dim, out_features=embedding_dim),
             nn.Dropout(p=dropout),
-            nn.ReLU()
+            nn.GELU()
         )
         self.fc_layer2 = nn.Sequential(
             nn.Linear(in_features=embedding_dim, out_features=output_size),

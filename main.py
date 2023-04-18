@@ -68,12 +68,12 @@ def main():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    nano_gpt = NanoGPTClassifier(3, 5, 300, 20)
-    optimizer = torch.optim.Adam(nano_gpt.parameters(), lr=0.001, betas=(0.5, 0.999))
+    nano_gpt = NanoGPTClassifier(3, 10, 512, 40)
+    optimizer = torch.optim.Adam(nano_gpt.parameters(), lr=0.1) #, betas=(0.5, 0.999)
     loss_criterion = nn.CrossEntropyLoss()
     X_train = torch.from_numpy(X_train).to(device)
     y_train = torch.from_numpy(y_train).to(device)
-    
+
     nano_gpt.train(X_train, y_train, optimizer, loss_criterion, epochs=10, batch_size=95)
 
 
