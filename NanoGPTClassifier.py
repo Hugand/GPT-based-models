@@ -89,7 +89,8 @@ class NanoGPTClassifier(nn.Module):
             epochs=10,
             batch_size=64,
             save_frequency=10,
-            max_linear_scheduler_epochs=2000
+            max_linear_scheduler_epochs=2000,
+            start_learning_rate=0.000000001
     ):
         losses = []
         loss = 0
@@ -111,8 +112,8 @@ class NanoGPTClassifier(nn.Module):
         # The -1 is to prevent division by 0
         max_annealing_scheduler_epochs = n_batches * epochs - max_linear_scheduler_epochs - 1
 
-        linear_scheduler = LinearLR(optimizer, start_factor=1/max_linear_scheduler_epochs, end_factor=1.0, total_iters=max_linear_scheduler_epochs)
-        annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=1/max_linear_scheduler_epochs)
+        linear_scheduler = LinearLR(optimizer, start_factor=start_learning_rate, end_factor=1.0, total_iters=max_linear_scheduler_epochs)
+        annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=start_learning_rate)
         learning_rates = []
         train_accuracies = []
         val_accuracies = []
