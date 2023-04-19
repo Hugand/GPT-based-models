@@ -135,7 +135,7 @@ class NanoGPTClassifier(nn.Module):
                 loss += train_loss.item()
 
                 # Update learning rate with the schedulers
-                if epochs * i < max_linear_scheduler_epochs:
+                if epoch * i < max_linear_scheduler_epochs:
                     linear_scheduler.step()
                 else:
                     annealing_scheduler.step()
