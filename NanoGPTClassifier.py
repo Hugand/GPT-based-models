@@ -62,7 +62,7 @@ class NanoGPTClassifier(nn.Module):
         with torch.no_grad():
             preds = self(X)
             preds = torch.argmax(preds, dim=1)
-            enc_y_test = torch.argmax(torch.from_numpy(y), dim=1)
+            enc_y_test = torch.argmax(y, dim=1)
             test_acc = torch.sum(preds == enc_y_test) / len(y)
         
         self.train()
