@@ -57,6 +57,17 @@ class NanoGPTClassifier(nn.Module):
             if module.bias is not None:
                 module.bias.data.zero_()
 
+    def test(self, X, y):
+        self.eval()
+        with torch.no_grad():
+            preds = self(X)
+            preds = torch.argmax(preds, dim=1)
+            enc_y_test = torch.argmax(torch.from_numpy(y), dim=1)
+            test_acc = torch.sum(preds == enc_y_test) / len(y)
+        
+        self.train()
+
+        return test_acc
 
     def forward(self, features):
         # Embedding
@@ -73,6 +84,7 @@ class NanoGPTClassifier(nn.Module):
 
     def fit(self,
             X, y,
+            X_val, y_val,
             optimizer, loss_criterion,
             epochs=10,
             batch_size=64,
@@ -87,22 +99,23 @@ class NanoGPTClassifier(nn.Module):
         print(X.shape)
         
         X = torch.reshape(X, (n_batches, batch_size, X.shape[1])).to(device)
-        # X = torch.from_numpy(X).to(device)
-
         y = torch.reshape(y, (n_batches, batch_size, y.shape[1])) \
             .type(torch.FloatTensor).to(device)
         y = torch.argmax(y, dim=2)
-        # y = torch.from_numpy(y).to(device)
 
-        print(X.shape, y.shape, n_batches)
+        X_val = torch.from_numpy(X_val).to(device)
+        y_val = torch.from_numpy(y_val).type(torch.FloatTensor).to(device)
+
+        print(X.shape, y.shape, n_batches, X_val.shape, y_val.shape)
 
         # The -1 is to prevent division by 0
-        max_annealing_scheduler_epochs = n_batches * epochs - max_linear_scheduler_epochs - 1
+        max_annealing_scheduler_epochs = n_batches * epoch - max_linear_scheduler_epochs - 1
 
         linear_scheduler = LinearLR(optimizer, start_factor=1/max_linear_scheduler_epochs, end_factor=1.0, total_iters=max_linear_scheduler_epochs)
         annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=0.0)
         learning_rates = []
         train_accuracies = []
+        val_accuracies = []
 
         print("Starting training...")
         for epoch in range(epochs):
@@ -144,7 +157,7 @@ class NanoGPTClassifier(nn.Module):
                 batch_progress += 1
                 print('#', end="")
 
-                
+            val_acc = self.test(X_val, y_val)
             
             after_lr = optimizer.param_groups[0]["lr"]
             learning_rates.append(after_lr)
@@ -152,12 +165,13 @@ class NanoGPTClassifier(nn.Module):
 
             train_acc = train_acc / n_batches
             train_accuracies.append(train_acc)
+            val_accuracies.append(val_acc)
 
-            print(f', loss: {loss}, acc: {train_acc}')
+            print(f', loss: {loss}, train_acc: {train_acc}, val_acc: {val_acc}')
 
             if epoch % save_frequency == 0:
                 torch.save(self.state_dict(), 'nano-gpt-classifier.model')
 
         torch.save(self.state_dict(), 'nano-gpt-classifier-final.model')
             
-        return losses, train_accuracies, learning_rates
+        return losses, train_accuracies, val_accuracies, learning_rates
