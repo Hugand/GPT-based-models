@@ -96,7 +96,8 @@ class NanoGPTClassifier(nn.Module):
 
         print(X.shape, y.shape, n_batches)
 
-        max_annealing_scheduler_epochs = n_batches * epochs - max_linear_scheduler_epochs
+        # The -1 is to prevent division by 0
+        max_annealing_scheduler_epochs = n_batches * epochs - max_linear_scheduler_epochs - 1
 
         linear_scheduler = LinearLR(optimizer, start_factor=0, end_factor=1.0, total_iters=max_linear_scheduler_epochs)
         annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=0.0)
@@ -110,6 +111,12 @@ class NanoGPTClassifier(nn.Module):
             print(f'Epoch {epoch}/{epochs} - ', end="")
             
             for i in range(n_batches):
+                # Update learning rate with the schedulers
+                if epochs * i < max_linear_scheduler_epochs:
+                    linear_scheduler.step()
+                else:
+                    annealing_scheduler.step()
+
                 # Generate batch noisy images
                 optimizer.zero_grad()
                 
@@ -135,10 +142,6 @@ class NanoGPTClassifier(nn.Module):
                 #progress += step_size
                 batch_progress += 1
                 print('#', end="")
-                if epochs * i < max_linear_scheduler_epochs:
-                    linear_scheduler.step()
-                else:
-                    annealing_scheduler.step()
             
             after_lr = optimizer.param_groups[0]["lr"]
             learning_rates.append(after_lr)
