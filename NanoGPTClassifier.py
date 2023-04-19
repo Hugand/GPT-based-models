@@ -109,10 +109,10 @@ class NanoGPTClassifier(nn.Module):
         print(X.shape, y.shape, n_batches, X_val.shape, y_val.shape)
 
         # The -1 is to prevent division by 0
-        max_annealing_scheduler_epochs = n_batches * epoch - max_linear_scheduler_epochs - 1
+        max_annealing_scheduler_epochs = n_batches * epochs - max_linear_scheduler_epochs - 1
 
         linear_scheduler = LinearLR(optimizer, start_factor=1/max_linear_scheduler_epochs, end_factor=1.0, total_iters=max_linear_scheduler_epochs)
-        annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=0.0)
+        annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=1/max_linear_scheduler_epochs)
         learning_rates = []
         train_accuracies = []
         val_accuracies = []
