@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 from modules.TransformerBlock import TransformerBlock
+from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -70,7 +71,14 @@ class NanoGPTClassifier(nn.Module):
         
         return X
 
-    def fit(self, X, y, optimizer, loss_criterion, epochs=10, batch_size=64, save_frequency=10):
+    def fit(self,
+            X, y,
+            optimizer, loss_criterion,
+            epochs=10,
+            batch_size=64,
+            save_frequency=10,
+            max_linear_scheduler_epochs=2000
+    ):
         losses = []
         loss = 0
         batch_progress = 0
@@ -87,6 +95,13 @@ class NanoGPTClassifier(nn.Module):
         # y = torch.from_numpy(y).to(device)
 
         print(X.shape, y.shape, n_batches)
+
+        max_annealing_scheduler_epochs = n_batches * epochs - max_linear_scheduler_epochs
+
+        linear_scheduler = LinearLR(optimizer, start_factor=0, end_factor=1.0, total_iters=max_linear_scheduler_epochs)
+        annealing_scheduler = CosineAnnealingLR(optimizer, T_max=max_annealing_scheduler_epochs, eta_min=0.0)
+        learning_rates = []
+        train_accuracies = []
 
         print("Starting training...")
         for epoch in range(epochs):
@@ -120,9 +135,17 @@ class NanoGPTClassifier(nn.Module):
                 #progress += step_size
                 batch_progress += 1
                 print('#', end="")
-
+                if epochs * i < max_linear_scheduler_epochs:
+                    linear_scheduler.step()
+                else:
+                    annealing_scheduler.step()
+            
+            after_lr = optimizer.param_groups[0]["lr"]
+            learning_rates.append(after_lr)
             losses.append(loss)
-            train_acc = train_acc/n_batches
+
+            train_acc = train_acc / n_batches
+            train_accuracies.append(train_acc)
 
             print(f', loss: {loss}, acc: {train_acc}')
 
@@ -131,4 +154,4 @@ class NanoGPTClassifier(nn.Module):
 
         torch.save(self.state_dict(), 'nano-gpt-classifier-final.model')
             
-        return losses
+        return losses, train_accuracies, learning_rates
