@@ -19,11 +19,14 @@ class TransformerBlock(nn.Module):
         self.fc_layers = FullyConnectedLayers(embedding_dim, dropout).to(device)
         self.layernorm_2 = nn.LayerNorm(embedding_dim).to(device)
 
+        self.dropout_1 = nn.Dropout(dropout)
+        self.dropout_2 = nn.Dropout(dropout)
+
     def forward(self, x):
         residual = x
         x = self.multihead_attention(x)
-        x = self.layernorm_1(x + residual)
+        x = self.layernorm_1(self.dropout_1(x + residual))
         residual  = x
         x = self.fc_layers(x)
-        x = self.layernorm_2(x + residual)
+        x = self.layernorm_2(self.dropout_2(x + residual))
         return x

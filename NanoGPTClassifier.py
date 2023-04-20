@@ -32,7 +32,8 @@ class NanoGPTClassifier(nn.Module):
                  n_embeddings,
                  embedding_dim,
                  n_blocks_heads=10,
-                 block_size=1024):
+                 block_size=1024,
+                 dropout=0.1):
         super().__init__()
         self.n_transformer_blocks = n_transformer_blocks
         self.n_embeddings = n_embeddings
@@ -41,8 +42,11 @@ class NanoGPTClassifier(nn.Module):
         self.n_blocks_heads = n_blocks_heads
 
         # Layers
-        self.embedding = nn.Embedding(n_embeddings, embedding_dim).to(device)
-        self.transformer_blocks = [TransformerBlock(n_blocks_heads, embedding_dim, False, 0.1, block_size) for _ in range(n_transformer_blocks)]
+        self.embedding = nn.Sequential(
+            nn.Embedding(n_embeddings, embedding_dim).to(device),
+            nn.Dropout(dropout)
+        )
+        self.transformer_blocks = [TransformerBlock(n_blocks_heads, embedding_dim, False, dropout, block_size) for _ in range(n_transformer_blocks)]
         self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
         # Initialize weights
