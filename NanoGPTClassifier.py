@@ -88,7 +88,9 @@ class NanoGPTClassifier(nn.Module):
         for transformer_block in self.transformer_blocks:
             X = transformer_block(X)
             i += 1
+        print("T1", X.shape)
         flattened = X.view(X.size(0), -1)
+        print("TF", flattened.shape)
         # Classifier layers
         X = self.output_head(flattened)
         
