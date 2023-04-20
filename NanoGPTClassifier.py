@@ -49,7 +49,8 @@ class NanoGPTClassifier(nn.Module):
         self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
         # Initialize weights
-        self._init_weights(self.embedding)
+        self._init_weights(self.text_embedding)
+        self._init_weights(self.positional_embedding)
         for block in self.transformer_blocks:
             self._init_weights(block)
         self._init_weights(self.output_head)
