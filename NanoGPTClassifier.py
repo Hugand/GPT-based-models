@@ -26,16 +26,17 @@ class ClassificationHead(nn.Module):
         return x
 
 class NanoGPTClassifier(nn.Module):
-    def __init__(self, output_size, n_transformer_blocks, n_embeddings, embedding_dim):
+    def __init__(self, output_size, n_transformer_blocks, n_embeddings, embedding_dim, n_blocks_heads=10):
         super().__init__()
         self.n_transformer_blocks = n_transformer_blocks
         self.n_embeddings = n_embeddings
         self.embedding_dim = embedding_dim
         self.output_size = output_size
+        self.n_blocks_heads = n_blocks_heads
 
         # Layers
         self.embedding = nn.Embedding(n_embeddings, embedding_dim).to(device)
-        self.transformer_blocks = [TransformerBlock(10, embedding_dim, False) for _ in range(n_transformer_blocks)]
+        self.transformer_blocks = [TransformerBlock(n_blocks_heads, embedding_dim, False) for _ in range(n_transformer_blocks)]
         self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
         # Initialize weights
