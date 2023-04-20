@@ -9,24 +9,30 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class ClassificationHead(nn.Module):
     def __init__(self, n_embeddings, embedding_dim, output_size, dropout=0.1):
         super().__init__()
-        self.fc_layer1 = nn.Sequential(
-            nn.Linear(in_features=n_embeddings * embedding_dim, out_features=embedding_dim),
-            nn.Dropout(p=dropout),
-            nn.GELU()
-        )
+        # self.fc_layer1 = nn.Sequential(
+        #     nn.Linear(in_features=n_embeddings * embedding_dim, out_features=embedding_dim),
+        #     nn.Dropout(p=dropout),
+        #     nn.GELU()
+        # )
         self.fc_layer2 = nn.Sequential(
-            nn.Linear(in_features=embedding_dim, out_features=output_size),
+            nn.Linear(in_features=n_embeddings * embedding_dim, out_features=output_size),
             nn.Dropout(p=dropout),
             nn.Softmax(dim=1)
         )
 
     def forward(self, x):
-        x = self.fc_layer1(x)
+        # x = self.fc_layer1(x)
         x = self.fc_layer2(x)
         return x
 
 class NanoGPTClassifier(nn.Module):
-    def __init__(self, output_size, n_transformer_blocks, n_embeddings, embedding_dim, n_blocks_heads=10):
+    def __init__(self,
+                 output_size,
+                 n_transformer_blocks,
+                 n_embeddings,
+                 embedding_dim,
+                 n_blocks_heads=10,
+                 block_size=1024):
         super().__init__()
         self.n_transformer_blocks = n_transformer_blocks
         self.n_embeddings = n_embeddings
@@ -36,7 +42,7 @@ class NanoGPTClassifier(nn.Module):
 
         # Layers
         self.embedding = nn.Embedding(n_embeddings, embedding_dim).to(device)
-        self.transformer_blocks = [TransformerBlock(n_blocks_heads, embedding_dim, False) for _ in range(n_transformer_blocks)]
+        self.transformer_blocks = [TransformerBlock(n_blocks_heads, embedding_dim, False, 0.1, block_size) for _ in range(n_transformer_blocks)]
         self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
         # Initialize weights
