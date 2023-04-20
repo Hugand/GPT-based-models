@@ -77,7 +77,6 @@ class NanoGPTClassifier(nn.Module):
         return test_acc
 
     def forward(self, features):
-        print("E ->", X.shape)
         # Embedding
         X = self.embedding(features.to(device)).to(device)
         # Transformer blocks
