@@ -77,15 +77,21 @@ class NanoGPTClassifier(nn.Module):
         return test_acc
 
     def forward(self, features):
+        print("E ->", X.shape)
         # Embedding
         X = self.embedding(features.to(device)).to(device)
         # Transformer blocks
+        i = 0
         for transformer_block in self.transformer_blocks:
+            print("T", i, "->", X.shape)
             X = transformer_block(X)
-
+            i += 1
+        print("TF ->", X.shape)
         flattened = X.view(X.size(0), -1)
+        print("F ->", flattened.shape)
         # Classifier layers
         X = self.output_head(flattened)
+        print("LAST ->", X.shape)
         
         return X
 
