@@ -42,10 +42,9 @@ class NanoGPTClassifier(nn.Module):
         self.n_blocks_heads = n_blocks_heads
 
         # Layers
-        self.embedding = nn.Sequential(
-            nn.Embedding(n_embeddings, embedding_dim).to(device),
-            nn.Dropout(dropout)
-        )
+        self.text_embedding = nn.Embedding(n_embeddings, embedding_dim).to(device)
+        self.positional_embedding = nn.Embedding(block_size, embedding_dim).to(device)
+        self.dropout = nn.Dropout(dropout)
         self.transformer_blocks = [TransformerBlock(n_blocks_heads, embedding_dim, False, dropout, block_size) for _ in range(n_transformer_blocks)]
         self.output_head = ClassificationHead(n_embeddings, embedding_dim, output_size).to(device)
 
@@ -81,8 +80,13 @@ class NanoGPTClassifier(nn.Module):
         return test_acc
 
     def forward(self, features):
+        b, t = features.size()
+        positions = torch.arange(0, t, dtype=torch.long, device=device).unsqueeze(0) # shape (1, t)
+
         # Embedding
-        X = self.embedding(features.to(device)).to(device)
+        embeddings = self.text_embedding(features.to(device)).to(device) + \
+            self.positional_embedding(positions).to(device)
+        X = self.dropout(embeddings)
         # Transformer blocks
         i = 0
         for transformer_block in self.transformer_blocks:
